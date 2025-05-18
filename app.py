@@ -235,7 +235,8 @@ def detect_bounding_box(image, use_mediapipe=True):
             with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
                 results = face_detection.process(image)
                 if not results.detections:
-                    return faces
+                    return faces, {}  # Return empty faces and scores
+                emotion_scores_dict = {}  # Store emotion scores for each face
                 for i, detection in enumerate(results.detections):
                     bbox = detection.location_data.relative_bounding_box
                     h, w, _ = image.shape
@@ -255,37 +256,41 @@ def detect_bounding_box(image, use_mediapipe=True):
                     rounded_scores, cam = detect_emotion(pil_crop_img)
                     if rounded_scores is None or cam is None:
                         continue
+                    emotion_scores_dict[f'face_{i}'] = rounded_scores  # Store scores
                     max_emotion = update_max_emotion(rounded_scores)
                     plot_heatmap(x1, y1, x2 - x1, y2 - y1, cam, pil_crop_img, image)
                     print_max_emotion(x1, y1, max_emotion, image)
                     print_all_emotion(x1, y1, x2 - x1, rounded_scores, image)
-        return faces
+        return faces, emotion_scores_dict  # Return faces and their scores
     except Exception as e:
         print(f"Error in detect_bounding_box: {e}")
-        return {}
+        return {}, {}
 
 def process_frame(frame, frame_id, results):
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    faces = detect_bounding_box(frame_rgb)
-    frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-    
-    # Collect results for this frame
-    frame_results = {'frame_id': frame_id, 'faces': []}
-    for face_id, data in faces.items():
-        x1, y1, x2, y2 = data['facial_area']
-        pil_crop_img = Image.fromarray(frame_rgb[y1:y2, x1:x2])
-        scores, _ = detect_emotion(pil_crop_img)
-        if scores:
-            emotion_scores = dict(zip(class_labels, [round(score, 2) for score in scores]))
-            max_emotion = max(emotion_scores, key=emotion_scores.get)
-            frame_results['faces'].append({
-                'face_id': face_id,
-                'emotion_scores': emotion_scores,
-                'max_emotion': max_emotion
-            })
-    if frame_results['faces']:
-        results.append(frame_results)
-    return frame_bgr
+    try:
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        faces, emotion_scores_dict = detect_bounding_box(frame_rgb)  # Unpack the tuple
+        frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+
+        # Collect results for this frame if results list is provided
+        if results is not None:
+            frame_results = {'frame_id': frame_id, 'faces': []}
+            for face_id, data in faces.items():  # Now faces is a dictionary
+                if face_id in emotion_scores_dict:
+                    x1, y1, x2, y2 = data['facial_area']
+                    emotion_scores = dict(zip(class_labels, [round(score, 2) for score in emotion_scores_dict[face_id]]))
+                    max_emotion = max(emotion_scores, key=emotion_scores.get)
+                    frame_results['faces'].append({
+                        'face_id': face_id,
+                        'emotion_scores': emotion_scores,
+                        'max_emotion': max_emotion
+                    })
+            if frame_results['faces']:
+                results.append(frame_results)
+        return frame_bgr
+    except Exception as e:
+        print(f"Error in process_frame: {e}")
+        return frame
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_image():
@@ -308,19 +313,17 @@ def upload_image():
                 flash('Invalid image file')
                 return redirect(request.url)
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            faces = detect_bounding_box(image_rgb)
+            faces, emotion_scores_dict = detect_bounding_box(image_rgb)  # Get faces and scores
             image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
             output_filename = f'processed_{filename}'
             output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
             cv2.imwrite(output_path, image_bgr)
             
-            # Prepare results
+            # Prepare results using the stored scores
             results = []
             for face_id, data in faces.items():
-                x1, y1, x2, y2 = data['facial_area']
-                pil_crop_img = Image.fromarray(image_rgb[y1:y2, x1:x2])
-                scores, _ = detect_emotion(pil_crop_img)
-                if scores:
+                if face_id in emotion_scores_dict:
+                    scores = emotion_scores_dict[face_id]
                     emotion_scores = dict(zip(class_labels, [round(score, 2) for score in scores]))
                     max_emotion = max(emotion_scores, key=emotion_scores.get)
                     results.append({
@@ -374,7 +377,7 @@ def upload_video():
                 ret, frame = cap.read()
                 if not ret:
                     break
-                processed_frame = process_frame(frame, frame_id, results if frame_id % 30 == 0 else [])
+                processed_frame = process_frame(frame, frame_id, results if frame_id % 30 == 0 else None)
                 out.write(processed_frame)
                 frame_id += 1
             
@@ -394,6 +397,8 @@ def generate_camera_feed():
     cap = cv2.VideoCapture(0)  # Open default camera
     if not cap.isOpened():
         print("Error: Could not open camera.")
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + b'' + b'\r\n')
         return
     
     try:
@@ -401,7 +406,7 @@ def generate_camera_feed():
             ret, frame = cap.read()
             if not ret:
                 break
-            processed_frame = process_frame(frame, 0, [])  # Process without storing results
+            processed_frame = process_frame(frame, 0, None)  # Process without storing results
             ret, buffer = cv2.imencode('.jpg', processed_frame)
             frame_bytes = buffer.tobytes()
             yield (b'--frame\r\n'
