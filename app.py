@@ -138,9 +138,9 @@ class_labels = ['Happy', 'Surprise', 'Sad', 'Anger', 'Disgust', 'Fear', 'Neutral
 
 # Load the model
 model = ResEmoteNet(num_classes=7).to(device)
-model_path = "best_model_resemotenet_73.pth"
+model_path = "./models/best_model_resemotenet_80.pth"
 if not os.path.exists(model_path):
-    model_path = "final_model_resemotenet_73.pth"
+    model_path = "./models/final_model_resemotenet_80.pth"
     print("Best model not found, using final model.")
 if not os.path.exists(model_path):
     raise FileNotFoundError(f"No model found at {model_path}")
