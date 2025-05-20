@@ -202,13 +202,14 @@ def detect_emotion(pil_crop_img):
 
 def plot_heatmap(x, y, w, h, cam, pil_crop_img, image):
     try:
-        cam = cv2.resize(cam, (w, h))
-        heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
-        heatmap = np.float32(heatmap) / 255
-        roi = image[y:y + h, x:x + w, :]
-        overlay = heatmap * transparency + roi / 255 * (1 - transparency)
-        overlay = np.clip(overlay, 0, 1)
-        image[y:y + h, x:x + w, :] = np.uint8(255 * overlay)
+        # cam = cv2.resize(cam, (w, h))
+        # heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
+        # heatmap = np.float32(heatmap) / 255
+        # roi = image[y:y + h, x:x + w, :]
+        # overlay = heatmap * transparency + roi / 255 * (1 - transparency)
+        # overlay = np.clip(overlay, 0, 1)
+        # image[y:y + h, x:x + w, :] = np.uint8(255 * overlay)
+        pass
     except Exception as e:
         print(f"Error in plot_heatmap: {e}")
 
