@@ -177,6 +177,7 @@ def detect_emotion(pil_crop_img):
         probabilities = F.softmax(logits, dim=1)
         predicted_class = torch.argmax(probabilities, dim=1)
         predicted_class_idx = predicted_class.item()
+        confidence = probabilities[0][predicted_class_idx].item() * 100  # Convert to percentage
 
         # Backward pass for Grad-CAM
         one_hot_output = torch.FloatTensor(1, probabilities.shape[1]).zero_().to(device)
@@ -195,10 +196,10 @@ def detect_emotion(pil_crop_img):
 
         scores = probabilities.cpu().detach().numpy().flatten()
         rounded_scores = [round(score, 2) for score in scores]
-        return rounded_scores, cam
+        return rounded_scores, cam, confidence  # Return confidence as well
     except Exception as e:
         print(f"Error in detect_emotion: {e}")
-        return None, None
+        return None, None, None
 
 def plot_heatmap(x, y, w, h, cam, pil_crop_img, image):
     try:
@@ -217,9 +218,10 @@ def update_max_emotion(rounded_scores):
     max_index = np.argmax(rounded_scores)
     return class_labels[max_index]
 
-def print_max_emotion(x, y, max_emotion, image):
+def print_max_emotion(x, y, max_emotion, image, confidence=None):
     org = (x, y - 15)
-    cv2.putText(image, max_emotion, org, font, font_scale, font_color, thickness, line_type)
+    text = f"{max_emotion}: {confidence:.2f}%" if confidence is not None else max_emotion
+    cv2.putText(image, text, org, font, font_scale, font_color, thickness, line_type)
 
 def print_all_emotion(x, y, w, rounded_scores, image):
     org = (x + w + 10, y)
@@ -237,7 +239,7 @@ def detect_bounding_box(image, use_mediapipe=True):
                 results = face_detection.process(image)
                 if not results.detections:
                     return faces, {}  # Return empty faces and scores
-                emotion_scores_dict = {}  # Store emotion scores for each face
+                emotion_scores_dict = {}  # Store emotion scores and confidence for each face
                 for i, detection in enumerate(results.detections):
                     bbox = detection.location_data.relative_bounding_box
                     h, w, _ = image.shape
@@ -254,15 +256,19 @@ def detect_bounding_box(image, use_mediapipe=True):
                     faces[f'face_{i}'] = {'facial_area': [x1, y1, x2, y2]}
                     cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     pil_crop_img = Image.fromarray(image[y1:y2, x1:x2])
-                    rounded_scores, cam = detect_emotion(pil_crop_img)
-                    if rounded_scores is None or cam is None:
+                    rounded_scores, cam, confidence = detect_emotion(pil_crop_img)  # Unpack confidence
+                    if rounded_scores is None or cam is None or confidence is None:
                         continue
-                    emotion_scores_dict[f'face_{i}'] = rounded_scores  # Store scores
+                    emotion_scores_dict[f'face_{i}'] = {
+                        'scores': rounded_scores,
+                        'confidence': round(confidence, 2)  # Round confidence to 2 decimal places
+                    }
                     max_emotion = update_max_emotion(rounded_scores)
                     plot_heatmap(x1, y1, x2 - x1, y2 - y1, cam, pil_crop_img, image)
-                    print_max_emotion(x1, y1, max_emotion, image)
-                    print_all_emotion(x1, y1, x2 - x1, rounded_scores, image)
-        return faces, emotion_scores_dict  # Return faces and their scores
+                    print_max_emotion(x1, y1, max_emotion, image, confidence)  # Keep dominant emotion and confidence
+                    # Comment out or remove the following line to stop printing all scores
+                    # print_all_emotion(x1, y1, x2 - x1, rounded_scores, image)
+        return faces, emotion_scores_dict  # Return faces and their scores/confidence
     except Exception as e:
         print(f"Error in detect_bounding_box: {e}")
         return {}, {}
@@ -320,17 +326,19 @@ def upload_image():
             output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
             cv2.imwrite(output_path, image_bgr)
             
-            # Prepare results using the stored scores
+            # Prepare results using the stored scores and confidence
             results = []
             for face_id, data in faces.items():
                 if face_id in emotion_scores_dict:
-                    scores = emotion_scores_dict[face_id]
+                    scores = emotion_scores_dict[face_id]['scores']
+                    confidence = emotion_scores_dict[face_id]['confidence']
                     emotion_scores = dict(zip(class_labels, [round(score, 2) for score in scores]))
                     max_emotion = max(emotion_scores, key=emotion_scores.get)
                     results.append({
                         'face_id': face_id,
                         'emotion_scores': emotion_scores,
-                        'max_emotion': max_emotion
+                        'max_emotion': max_emotion,
+                        'confidence': confidence  # Add confidence to results
                     })
             
             hook.unregister_hook()
