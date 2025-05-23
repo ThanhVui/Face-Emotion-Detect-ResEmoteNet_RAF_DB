@@ -6,33 +6,93 @@
     <title>Live Camera Emotion Detection</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Responsive adjustments */
-        @media (max-width: 640px) {
-            .image-frame {
-                max-width: 100%; /* Full width on small screens */
-                height: 400px; /* Reduced height for mobile */
-            }
-        }
-        
-        /* Enhance typography and button hover effect */
-        .nav-link:hover {
-            text-decoration: underline;
-            color: #93c5fd; /* Lighter blue on hover */
+        /* Gradient background for the page */
+        body {
+            background: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
         }
 
+        /* Smooth hover effects for navigation links */
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+            color: #bfdbfe; /* Softer blue on hover */
+            transform: translateY(-2px);
+            display: inline-block;
+        }
+
+        /* Enhanced button styles */
+        .btn-upload {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
         .btn-upload:hover {
-            background-color: #2563eb; /* Darker blue on hover */
-            transform: translateY(-1px); /* Slight lift effect */
+            background-color: #1d4ed8; /* Darker blue on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* File input enhancement */
+        .custom-file-input::-webkit-file-upload-button {
+            visibility: hidden;
+        }
+        .custom-file-input::before {
+            content: 'Choose Image';
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .custom-file-input:hover::before {
+            background: #bfdbfe;
+        }
+        .custom-file-input:active::before {
+            background: #93c5fd;
+        }
+
+        /* Logo styling */
+        .nav-logo {
+            height: 40px; /* Adjust based on your logo's dimensions */
+            transition: transform 0.3s ease;
+        }
+        .nav-logo:hover {
+            transform: scale(1.05); /* Slight zoom on hover */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .form-container {
+                padding: 1.5rem;
+                max-width: 90%;
+            }
+            .nav-logo {
+                height: 32px; /* Smaller logo on mobile */
+            }
+            .nav-links {
+                space-x-4; /* Reduce spacing between links on mobile */
+            }
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Header Bar -->
-    <nav class="bg-blue-600 p-4 shadow-lg" style="position: fixed; top: 0; left: 0; right: 0;">
-        <div class="container mx-auto flex justify-center space-x-6">
-            <a href="{{ url_for('upload_image') }}" class="text-white font-semibold text-lg nav-link">Image Upload</a>
-            <a href="{{ url_for('upload_video') }}" class="text-white font-semibold text-lg nav-link">Video Upload</a>
-            <a href="{{ url_for('camera_feed') }}" class="text-white font-semibold text-lg nav-link">Camera Feed</a>
+    <nav class="bg-blue-700 p-2 shadow-lg" style="position: fixed; top: 0; left: 0; right: 0; z-index: 10;">
+        <div class="container mx-auto flex items-center justify-between">
+            <!-- Logo -->
+            <a href="{{ url_for('upload_image') }}">
+                <img style="border-radius: 10px; height: 50px; width: 120px; padding: 0;" src="{{ url_for('static', filename='uploads/THD-Logo.png') }}" alt="Emotion Detection Logo" class="nav-logo">
+            </a>
+            <!-- Navigation Links -->
+            <div class="flex space-x-8 nav-links">
+                <a href="{{ url_for('upload_image') }}" class="text-white font-semibold text-lg nav-link">Image Upload</a>
+                <a href="{{ url_for('upload_video') }}" class="text-white font-semibold text-lg nav-link">Video Upload</a>
+                <a href="{{ url_for('camera_feed') }}" class="text-white font-semibold text-lg nav-link">Camera Feed</a>
+            </div>
         </div>
     </nav>
     <!-- Main Content -->
