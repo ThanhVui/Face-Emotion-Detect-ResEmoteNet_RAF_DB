@@ -40,7 +40,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
     <!-- Header Bar -->
-    <nav class="bg-blue-600 p-4 shadow-lg">
+    <nav class="bg-blue-600 p-4 shadow-lg" style="position: fixed; top: 0; left: 0; right: 0;">
         <div class="container mx-auto flex justify-center space-x-6">
             <a href="{{ url_for('upload_image') }}" class="text-white font-semibold text-lg nav-link">Image Upload</a>
             <a href="{{ url_for('upload_video') }}" class="text-white font-semibold text-lg nav-link">Video Upload</a>
@@ -49,7 +49,7 @@
     </nav>
 
     <!-- Main Content -->
-    <div class="container mx-auto p-6">
+    <div class="container mx-auto p-20">
         <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">Emotion Detection Results</h1>
         <div class="flex justify-center mb-8">
             <div class="image-frame">

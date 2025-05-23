@@ -5,18 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Emotion Detection Results</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .image-frame {
+                max-width: 100%; /* Full width on small screens */
+                height: 400px; /* Reduced height for mobile */
+            }
+        }
+        
+        /* Enhance typography and button hover effect */
+        .nav-link:hover {
+            text-decoration: underline;
+            color: #93c5fd; /* Lighter blue on hover */
+        }
+
+        .btn-upload:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+            transform: translateY(-1px); /* Slight lift effect */
+        }
+    </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Header Bar -->
-    <nav class="bg-blue-600 p-4 shadow-md">
-        <div class="container mx-auto flex justify-center space-x-4">
-            <a href="{{ url_for('upload_image') }}" class="text-white font-semibold hover:text-gray-200">Image Upload</a>
-            <a href="{{ url_for('upload_video') }}" class="text-white font-semibold hover:text-gray-200">Video Upload</a>
-            <a href="{{ url_for('camera_feed') }}" class="text-white font-semibold hover:text-gray-200">Camera Feed</a>
+    <nav class="bg-blue-600 p-4 shadow-lg" style="position: fixed; top: 0; left: 0; right: 0;">
+        <div class="container mx-auto flex justify-center space-x-6">
+            <a href="{{ url_for('upload_image') }}" class="text-white font-semibold text-lg nav-link">Image Upload</a>
+            <a href="{{ url_for('upload_video') }}" class="text-white font-semibold text-lg nav-link">Video Upload</a>
+            <a href="{{ url_for('camera_feed') }}" class="text-white font-semibold text-lg nav-link">Camera Feed</a>
         </div>
     </nav>
     <!-- Main Content -->
-    <div class="container mx-auto p-6">
+    <div class="container mx-auto p-20">
         <h1 class="text-3xl font-bold mb-6 text-center">Video Emotion Detection Results</h1>
         <div class="mb-6">
             <video controls class="mx-auto rounded-lg shadow-lg max-w-full h-auto">
